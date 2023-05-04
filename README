@@ -24,7 +24,7 @@ sponsorblock_minimal-categories
 This sets the segment categories that are skipped. By default only sponsor
 segments are skipped. The format is a little tricky but lets say that you want
 to skip sponsor and intro segments then you could do this:
---script-opts=sponsorblock_minimal-categories=["sponsor","intro"]
+--script-opts=sponsorblock_minimal-categories='["sponsor","intro"]'
 You can find a list of all the categories here:
 https://wiki.sponsor.ajay.app/w/Types
 
