@@ -11,6 +11,31 @@ ranges will get redownloaded if you watch a video more than once.
 
 b toggles between on/off
 
+
+This script has a few script-opts you can set:
+
+sponsorblock_minimal-server
+
+This sets the url, where the script gets the segments from. Default is
+"https://sponsor.ajay.app/api/skipSegments"
+
+sponsorblock_minimal-categories
+
+This sets the segment categories that are skipped. By default only sponsor
+segments are skipped. The format is a little tricky but let's say that you want
+to skip sponsor and intro segments then you could do this:
+--script-opts=sponsorblock_minimal-categories=["sponsor","intro"]
+You can find a list of all the categories here:
+https://wiki.sponsor.ajay.app/w/Types
+
+sponsorblock_minimal-hash
+
+This option makes it so that the video id will not be sent to the sponsorblock
+server, but a part of sha256 hash will be sent instead. You will need the
+sha256sum program on your system to use this feature. Set to "true" to enable
+this.
+
+
 Link to the original mpv sponsorblock plugin:
 https://github.com/po5/mpv_sponsorblock
 
