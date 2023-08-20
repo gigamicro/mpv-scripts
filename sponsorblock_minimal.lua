@@ -62,7 +62,8 @@ function file_loaded()
 	if not youtube_id or string.len(youtube_id) < 11 then return end
 	youtube_id = string.sub(youtube_id, 1, 11)
 
-	local url = ""
+	local args = {"curl", "-L", "-s", "-G", "--data-urlencode", ("categories=[%s]"):format(options.categories)}
+	local url = options.server
 	if options.hash == "true" then
 		local sha = mp.command_native{
 			name = "subprocess",
@@ -70,16 +71,18 @@ function file_loaded()
 			args = {"sha256sum"},
 			stdin_data = youtube_id
 		}
-		url = ("%s/%s?categories=[%s]"):format(options.server, string.sub(sha.stdout, 0, 4), options.categories)
+		url = ("%s/%s"):format(url, string.sub(sha.stdout, 0, 4))
 	else
-		url = ("%s?videoID=%s&categories=[%s]"):format(options.server, youtube_id, options.categories)
+		table.insert(args, "--data-urlencode")
+		table.insert(args, "videoID=" .. youtube_id)
 	end
+	table.insert(args, url)
 
 	local sponsors = mp.command_native{
 		name = "subprocess",
 		capture_stdout = true,
 		playback_only = false,
-		args = {"curl", "-L", "-s", "-g", url}
+		args = args
 	}
 	if sponsors.stdout then
 		local json = utils.parse_json(sponsors.stdout)
@@ -94,12 +97,12 @@ function file_loaded()
 			else
 				ranges = json
 			end
-		end
 
-		if ranges then
-			ON = true
-			mp.add_key_binding("b","sponsorblock",toggle)
-			mp.observe_property("time-pos", "native", skip_ads)
+			if ranges then
+				ON = true
+				mp.add_key_binding("b","sponsorblock",toggle)
+				mp.observe_property("time-pos", "native", skip_ads)
+			end
 		end
 	end
 end
