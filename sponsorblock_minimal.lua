@@ -21,46 +21,6 @@ local options = {
 
 opt.read_options(options)
 
-function get_ranges(youtube_id, url)
-	local luacurl_available, cURL = pcall(require,'cURL')
-
-	local res = nil
-	if not(luacurl_available) then -- if Lua-cURL is not available on this system
-		local sponsors = mp.command_native{
-			name = "subprocess",
-			capture_stdout = true,
-			playback_only = false,
-			args = {"curl", "-L", "-s", "-g", url}
-		}
-		res = sponsors.stdout
-	else -- otherwise use Lua-cURL (binding to libcurl)
-		local buf={}
-		local c = cURL.easy_init()
-		c:setopt_followlocation(1)
-		c:setopt_url(url)
-		c:setopt_writefunction(function(chunk) table.insert(buf,chunk); return true; end)
-		c:perform()
-		res = table.concat(buf)
-	end
-
-	if res then
-		local json = utils.parse_json(res)
-		if type(json) == "table" then
-			if options.hash == "true" then
-				for _, i in pairs(json) do
-					if i.videoID == youtube_id then
-						return i.segments
-					end
-				end
-			else
-				return json
-			end
-		end
-	end
-
-	return nil
-end
-
 function skip_ads(name,pos)
 	if pos then
 		for _, i in pairs(ranges) do
@@ -115,11 +75,32 @@ function file_loaded()
 		url = ("%s?videoID=%s&categories=[%s]"):format(options.server, youtube_id, options.categories)
 	end
 
-	ranges = get_ranges(youtube_id, url)
-	if ranges then
-		ON = true
-		mp.add_key_binding("b","sponsorblock",toggle)
-		mp.observe_property("time-pos", "native", skip_ads)
+	local sponsors = mp.command_native{
+		name = "subprocess",
+		capture_stdout = true,
+		playback_only = false,
+		args = {"curl", "-L", "-s", "-g", url}
+	}
+	if sponsors.stdout then
+		local json = utils.parse_json(sponsors.stdout)
+		if type(json) == "table" then
+			if options.hash == "true" then
+				for _, i in pairs(json) do
+					if i.videoID == youtube_id then
+						ranges = i.segments
+						break
+					end
+				end
+			else
+				ranges = json
+			end
+		end
+
+		if ranges then
+			ON = true
+			mp.add_key_binding("b","sponsorblock",toggle)
+			mp.observe_property("time-pos", "native", skip_ads)
+		end
 	end
 end
 
