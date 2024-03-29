@@ -10,7 +10,7 @@ local opts = {
     height= 1080,
     ratio = 1,--16/6, -- 16/[4..12]
 }
-local cycle_key = "c"
+local cycle_key = "v"
 -- /default settings
 
 local mp = mp
