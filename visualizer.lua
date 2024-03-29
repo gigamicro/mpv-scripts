@@ -29,6 +29,7 @@ local namelist = {
     "avectorscope",
     -- "avectorscope-dots",
     "showwaves",
+    -- "showwaves-dots",
     -- "showspectrum",
     -- "showcqt-bar",
     -- 'invalid :)'
@@ -175,6 +176,10 @@ local function get_visualizer(name)
                 "r"..       "="..fps..":" ..
                 "mode"..    "=p2p," ..
             "format"..      "=rgb0 [vo]"
+
+
+    elseif name == "showwaves-dots" then
+        return get_visualizer("showcqt"):gsub('=p2p','=point')
 
 
     end
