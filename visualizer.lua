@@ -173,7 +173,8 @@ local function get_visualizer(name)
         return "[aid"..aid.."] asplit [ao]," ..
             "showwaves"..   "=" ..
                 "size"..    "="..w.."x"..h..":" ..
-                "r"..       "="..fps..":" ..
+                "r"..       "=46:" .. -- ~1920px window, traveling left at half that per second
+                "draw"..    "=full:" ..
                 "mode"..    "=p2p," ..
             "format"..      "=rgb0 [vo]"
 
