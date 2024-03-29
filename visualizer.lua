@@ -109,7 +109,7 @@ local function get_visualizer(name)
             "showcqt"..     "=" ..
                 "fps"..     "="..fps..":" ..
                 "size"..    "="..(math.floor(w/2)*2).."x"..(math.floor(h/2)*2)..":" ..
-                "count"..   "="..math.ceil(h * 180 /1920 /fps)..":" .. -- 1/rate downward
+                "count"..   "="..math.ceil(h /12 /fps)..":" .. -- 1/rate downward, min 1
                 "csp"..     "=bt709:" ..
                 "bar_g"..   "=2:" ..
                 "sono_g"..  "=4:" ..
@@ -164,7 +164,7 @@ local function get_visualizer(name)
 
         return get_visualizer("showcqt")
             :gsub('size=[^:]+','size='..w.."x"..(h + axis_h)/(2))
-            :gsub('axisfile=[^:]+',"axisfile="..mp.find_config_file("scripts").."/visualizer/axis48.png")
+            :gsub("/axis.png:","/axis48.png:")
             :gsub(' *%[vo%]',":axis_h="..axis_h..":sono_h=0, "..
                 "split [v0], crop=h="..(h - axis_h)/(2)..":y=0, vflip, [v0] vstack [vo]")
 
