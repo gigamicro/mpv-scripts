@@ -211,14 +211,21 @@ local lavfi_save, lavfi_lastset = {}, nil
 local function hook()
     mp.msg.debug('hook()')
     aid=tonumber(mp.get_property('aid')) or aid
-    for _, track in ipairs(mp.get_property_native("track-list")) do
-        if aid then break end
+    if not aid then for _, track in ipairs(mp.get_property_native("track-list")) do
         if track.type == "audio" then
             aid = track.id
             if aid then break end
         end
+    end end
+    if not aid then
+        local function observ()
+            mp.msg.debug 'observ'
+            mp.unobserve_property(observ)
+            hook()
+        end
+        mp.observe_property('aid','native',observ)
+        return
     end
-    if not aid then return end
     vid=tonumber(mp.get_property('vid')) or vid
     mp.msg.trace('Passed checks')
 
