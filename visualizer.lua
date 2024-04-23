@@ -30,6 +30,9 @@ local namelist = {
     -- "avectorscope-dots",
     "showwaves",
     -- "showwaves-dots",
+    -- "showwaves-mid",
+    "showwaves-high",
+    -- "showwaves-low",
     -- "showspectrum",
     -- "showcqt-bar",
     -- 'invalid :)'
@@ -173,14 +176,29 @@ local function get_visualizer(name)
         return "[aid"..aid.."] asplit [ao]," ..
             "showwaves"..   "=" ..
                 "size"..    "="..w.."x"..h..":" ..
-                "r"..       "=46:" .. -- ~1920px window, traveling left at half that per second
+                "r"..       "=46:" .. -- ~1920px window, traveling left at half that per frame
                 "draw"..    "=full:" ..
                 "mode"..    "=p2p," ..
             "format"..      "=rgb0 [vo]"
 
-
     elseif name == "showwaves-dots" then
-        return get_visualizer("showcqt"):gsub('=p2p','=point')
+        return get_visualizer("showwaves"):gsub('=p2p','=point')
+
+    elseif name == "showwaves-mid" then
+        return get_visualizer("showwaves"):gsub('asplit %[ao],','asplit [ao],'
+            .. "highpass=f=1024,"
+            .. "lowpass=f=4096,"
+            )
+
+    elseif name == "showwaves-high" then
+        return get_visualizer("showwaves"):gsub('asplit %[ao],','asplit [ao],'
+            .. "highpass=f=4096,"
+            )
+
+    elseif name == "showwaves-low" then
+        return get_visualizer("showwaves"):gsub('asplit %[ao],','asplit [ao],'
+            .. "lowpass=f=1024,"
+            )
 
 
     end
