@@ -86,11 +86,7 @@ local function get_visualizer(name)
 
     if false then
     elseif name == 'ao' then
-        if mp.get_property_bool('force-window') then
-            return get_visualizer(cycle(last_cycleby))
-        else
-            return "[aid"..aid.."] asetpts=PTS [ao]"
-        end
+        return "[aid"..aid.."] asetpts=PTS [ao]"
 
 
     elseif name == "av" then
