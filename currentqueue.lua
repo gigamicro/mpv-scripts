@@ -21,9 +21,9 @@ local function handle(_,pl)
 		end
 		if newlines > 0 then mp.msg.warn(newlines..' newlines in filenames!') end
 	end
-	pl[#pl+1]=(' '):rep(#pl) -- to overwrite last bit
+	pl[#pl]=pl[#pl] and pl[#pl]:gsub('%s*$',(' '):rep(#pl))
 	fp:seek('set',0)
-	fp:write(table.concat(pl,'\n'));
+	fp:write(table.concat(pl,'\n'),'\n');
 end
 local function close()
 	if not fp then return end
