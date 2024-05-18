@@ -1,6 +1,6 @@
 local dir = (os.getenv('APPDATA') or os.getenv('HOME')..'/.config')..'/mpv/q'
 local file, fp, lastpos
-local handle = function(_,pl)
+local function handle(_,pl)
 	if not fp then
 		file = dir..'/q'..os.date('%Y-%m-%dT%H:%M:%S')..'.m3u'
 		fp = io.open(file, 'w')
@@ -21,10 +21,8 @@ local handle = function(_,pl)
 		end
 		if newlines > 0 then mp.msg.warn(newlines..' newlines in filenames!') end
 	end
-	local playlist = table.concat(pl,'\n')
 	fp:seek('set',0)
-	fp:write(playlist);
-	-- fp:close();
+	fp:write(table.concat(pl,'\n'));
 end
 local function close()
 	if not fp then return end
@@ -35,7 +33,6 @@ end
 local function endhandle()
 	mp.msg.info(lastpos, '?=', mp.get_property_native('playlist-count',0))
 	if lastpos == -1 or lastpos == mp.get_property_native('playlist-count',0) then
-		-- just went off the end of the playlist
 		mp.msg.info 'Cleaning playlist file!'
 		close()
 		os.remove(file)
@@ -48,9 +45,6 @@ mp.observe_property("playlist-pos-1", "native", function(_,pos)
 	handle('playlist',mp.get_property_native('playlist'))
 end)
 mp.register_event('shutdown', endhandle)
-
---https://stackoverflow.com/questions/5303174/how-to-get-list-of-directories-in-lua/11130774#11130774
---> io.popen
 
 mp.add_key_binding(':', 'firstqueue', function()
 	if not endhandle() then close() end
