@@ -1,4 +1,4 @@
-mp.add_key_binding('ctrl+v', 'paste', function()
+local function paste(mode)
 	local clip = mp.command_native{
 		name = 'subprocess',
 		capture_stdout = true,
@@ -6,9 +6,11 @@ mp.add_key_binding('ctrl+v', 'paste', function()
 		args = {'xclip', '-sel','c', '-o'}
 	}.stdout..'\n'
 	for f in clip:gmatch('([^\n]*/[^\n]+)\n') do
-		mp.commandv('loadfile', f, 'append-play')
+		mp.commandv('loadfile', f, mode)
 	end
-end)
+end
+mp.add_key_binding('ctrl+v', 'paste',    function()paste'append-play'end)
+mp.add_key_binding('ctrl+V', 'altpaste', function()paste'insert-next-play'end)
 local function getpl()
 	local pl = mp.get_property_native("playlist")
 
@@ -48,4 +50,3 @@ mp.add_key_binding('ctrl+D', 'altdrag', function()
 		mp.msg.warn('process ended '..ret.error_string..' with status '..ret.status)
 	end
 end)
--- mp.add_key_binding('ctrl+V', 'altpaste', function()end) -- paste, but override?
