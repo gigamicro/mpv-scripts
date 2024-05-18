@@ -9,9 +9,9 @@ mp.register_event('file-loaded', function()
     fp:write(os.date('[%Y-%m-%d %X] ')..mp.get_property('path')..title..'\n');
     fp:close();
 end)
---[[
+-- [[
 -- mp.register_event('idle', function()
-mp.add_key_binding(':', 'historyplay', function()
+mp.add_key_binding(nil, 'historyplay', function()
     local fp = io.open(HISTFILE, 'r')
     if not fp then return end
     fp:seek('end', -1024) -->pos (num)
