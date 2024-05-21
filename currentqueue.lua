@@ -15,10 +15,18 @@ local function handle(_,pl)
 			fp = io.open(file, 'w')
 		end
 	end
-	do -- remove extra data, new line handling, comment played
+	do -- remove extra data, new line handling, comment played, 
 		local newlines = 0
+		local nonlocal = false
 		local pos = mp.get_property_native('playlist-pos-1',1)
 		for i,v in ipairs(pl) do
+			if not nonlocal and not (v.filename:match('^/') or v.filename:match('^file:///')) then
+				nonlocal = true;
+			elseif i>100 then
+				close()
+				os.remove(file)
+				return
+			end
 			local nl = 0
 			pl[i], nl = v.filename:gsub('\n',[[\n]])
 			newlines = newlines + nl
