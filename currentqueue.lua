@@ -1,5 +1,11 @@
 local dir = (os.getenv('APPDATA') or os.getenv('HOME')..'/.config')..'/mpv/q'
 local file, fp, lastpos
+local function close()
+	if not fp then return end
+	fp:close()
+	fp = nil
+	lastpos=-2
+end
 local function handle(_,pl)
 	if not fp then
 		file = dir..'/q'..os.date('%Y-%m-%dT%H:%M:%S')..'.m3u'
@@ -24,12 +30,6 @@ local function handle(_,pl)
 	pl[#pl]=pl[#pl] and pl[#pl]:gsub('%s*$',(' '):rep(#pl))
 	fp:seek('set',0)
 	fp:write(table.concat(pl,'\n'),'\n');
-end
-local function close()
-	if not fp then return end
-	fp:close()
-	fp = nil
-	lastpos=-2
 end
 local function endhandle()
 	mp.msg.info(lastpos, '?=', mp.get_property_native('playlist-count',0))
