@@ -1,12 +1,19 @@
 local dir = (os.getenv('APPDATA') or os.getenv('HOME')..'/.config')..'/mpv/q'
-local file, fp, lastpos
+local file, fp, lastpos, lastlen
 local function close()
 	if not fp then return end
 	fp:close()
 	fp = nil
 	lastpos=-2
+	lastlen=-1
 end
 local function handle(_,pl)
+	local len = mp.get_property_native('playlist-count',0)
+	if (lastlen or 0) > len+2 then
+		close()
+	else
+		lastlen=len
+	end
 	if not fp then
 		file = dir..'/q'..os.date('%Y-%m-%dT%H:%M:%S')..'.m3u'
 		fp = io.open(file, 'w')
