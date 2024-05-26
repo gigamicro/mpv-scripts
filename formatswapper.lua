@@ -1,7 +1,7 @@
 mp.observe_property('speed', 'native',function(_,speed)
 	-- bestvideo[height<=?720][fps<=?30][vcodec!=?vp9]+bestaudio/best
 	local fps = '[fps<=?'..(mp.get_property_native('display-fps',60)/speed)..']'
-	local format, count = mp.get_property_native('ytdl-format',''):gsub('(%[fps<[=?]+)%d+]',fps)
+	local format, count = mp.get_property_native('ytdl-format',''):gsub('(%[fps<[=?]+)[0-9.]+]',fps)
 	if count == 0 then
 		format=format..fps
 	elseif count > 1 then
