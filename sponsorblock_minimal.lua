@@ -1,96 +1,124 @@
+-- https://codeberg.org/jouni/mpv_sponsorblock_minimal/src/branch/master/sponsorblock_minimal.lua
 -- sponsorblock_minimal.lua
 --
 -- This script skips sponsored segments of YouTube videos
 -- using data from https://github.com/ajayyy/SponsorBlock
 
-local opt = require 'mp.options'
+local mp = mp
 local utils = require 'mp.utils'
-
-local ON = false
-local ranges = nil
 
 local options = {
 	server = "https://sponsor.ajay.app/api/skipSegments",
 
 	-- Categories to fetch and skip
-	categories = '"sponsor"',
+	categories = '["sponsor","interaction","preview","intermission"]',
 
-	-- Set this to "true" to use sha256HashPrefix instead of videoID
-	hash = ""
+	-- Set this to use n digits of sha256HashPrefix instead of videoID (4 recommended)
+	hash = 0,
+
+	toggle_key='b',
+	enabled=true,
 }
+require 'mp.options'.read_options(options)
 
-opt.read_options(options)
+local ranges = nil
 
-function skip_ads(name,pos)
-	if pos then
-		for _, i in pairs(ranges) do
-			v = i.segment[2]
-			if i.segment[1] <= pos and v > pos then
-				--this message may sometimes be wrong
-				--it only seems to be a visual thing though
-				mp.osd_message(("[sponsorblock] skipping forward %ds"):format(math.floor(v-mp.get_property("time-pos"))))
-				--need to do the +0.01 otherwise mpv will start spamming skip sometimes
-				--example: https://www.youtube.com/watch?v=4ypMJzeNooo
-				mp.set_property("time-pos",v+0.01)
-				return
-			end
+local function skip_ads(_, pos)
+	if not pos then return end
+	for _, range in pairs(ranges) do
+		local endpos = range.segment[2]
+		if range.segment[1] <= pos and endpos > pos then
+			--this message may sometimes be wrong
+			--it only seems to be a visual thing though
+			mp.osd_message(("[sponsorblock] skipping %ds"):format(endpos-mp.get_property("time-pos")))
+			--need to do the +0.01 otherwise mpv will start spamming skip sometimes
+			--example: https://www.youtube.com/watch?v=4ypMJzeNooo
+			mp.set_property("time-pos",endpos+0.01)
+			return endpos
 		end
 	end
 end
 
-function file_loaded()
-	local video_path = mp.get_property("path", "")
-	local video_referer = string.match(mp.get_property("http-header-fields", ""), "Referer:([^,]+)") or ""
-
-	local urls = {
-		"ytdl://youtu%.be/([%w-_]+).*",
-		"ytdl://w?w?w?%.?youtube%.com/v/([%w-_]+).*",
-		"https?://youtu%.be/([%w-_]+).*",
-		"https?://w?w?w?%.?youtube%.com/v/([%w-_]+).*",
-		"/watch.*[?&]v=([%w-_]+).*",
-		"/embed/([%w-_]+).*",
-		"^ytdl://([%w-_]+)$",
-		"-([%w-_]+)%."
-	}
-	local youtube_id = nil
-	local purl = mp.get_property("metadata/by-key/PURL", "")
-	for i,url in ipairs(urls) do
-		youtube_id = youtube_id or string.match(video_path, url) or string.match(video_referer, url) or string.match(purl, url)
-		if youtube_id then break end
+local function toggle()
+	if options.enabled then
+		mp.unobserve_property(skip_ads)
+		mp.osd_message("[sponsorblock] off")
+		options.enabled = false
+	else
+		mp.observe_property("time-pos", "native", skip_ads)
+		mp.osd_message("[sponsorblock] on")
+		options.enabled = true
 	end
+end
+mp.add_key_binding(options.toggle_key,"toggle",toggle)
 
+local function get_ytid(vars)
+	local patterns = {
+		                "ytdl://youtu%.be/([%w-_][%w-_][%w-_][%w-_][%w-_][%w-_][%w-_][%w-_][%w-_][%w-_][%w-_])",
+		  "ytdl://w?w?w?%.?youtube%.com/v/([%w-_][%w-_][%w-_][%w-_][%w-_][%w-_][%w-_][%w-_][%w-_][%w-_][%w-_])",
+		              "https?://youtu%.be/([%w-_][%w-_][%w-_][%w-_][%w-_][%w-_][%w-_][%w-_][%w-_][%w-_][%w-_])",
+		"https?://w?w?w?%.?youtube%.com/v/([%w-_][%w-_][%w-_][%w-_][%w-_][%w-_][%w-_][%w-_][%w-_][%w-_][%w-_])",
+		                   "/watch.*[?&]v=([%w-_][%w-_][%w-_][%w-_][%w-_][%w-_][%w-_][%w-_][%w-_][%w-_][%w-_])",
+		                          "/embed/([%w-_][%w-_][%w-_][%w-_][%w-_][%w-_][%w-_][%w-_][%w-_][%w-_][%w-_])",
+		                         "^ytdl://([%w-_][%w-_][%w-_][%w-_][%w-_][%w-_][%w-_][%w-_][%w-_][%w-_][%w-_])$",
+		                              " %[([%w-_][%w-_][%w-_][%w-_][%w-_][%w-_][%w-_][%w-_][%w-_][%w-_][%w-_])%]%.",
+		                                "-([%w-_][%w-_][%w-_][%w-_][%w-_][%w-_][%w-_][%w-_][%w-_][%w-_][%w-_])%.",
+		                                 "([%w-_][%w-_][%w-_][%w-_][%w-_][%w-_][%w-_][%w-_][%w-_][%w-_][%w-_])",
+	}
+	for _, pattern in ipairs(patterns) do
+		for _, var in ipairs(vars) do
+			local id = string.match(var, pattern)
+			if id then return id end
+		end
+	end
+end
+
+local function file_loaded()
+	if not options.enabled then return end
+
+	local youtube_id = get_ytid{
+		mp.get_property("filename", ""),
+		mp.get_property("path", ""),
+		string.match(mp.get_property("http-header-fields", ""), "Referer:([^,]+)") or "",
+		mp.get_property("metadata/by-key/PURL", ""),
+	}
+	mp.msg.info(youtube_id)
 	if not youtube_id or string.len(youtube_id) < 11 then return end
+	if string.len(youtube_id) > 11 then mp.msg.info('ytid len',string.len(youtube_id),'; "'..youtube_id..'"') end
 	youtube_id = string.sub(youtube_id, 1, 11)
 
-	local args = {"curl", "-L", "-s", "-G", "--data-urlencode", ("categories=[%s]"):format(options.categories)}
+	local curl_args = { "curl", "--location", "--silent", "--get", "--data-urlencode","categories="..options.categories }
 	local url = options.server
-	if options.hash == "true" then
+	if tonumber(options.hash)>0 then
 		local sha = mp.command_native{
 			name = "subprocess",
 			capture_stdout = true,
 			args = {"sha256sum"},
 			stdin_data = youtube_id
-		}
-		url = ("%s/%s"):format(url, string.sub(sha.stdout, 0, 4))
+		}.stdout
+		url = ("%s/%s"):format(url, string.sub(sha, 0, tonumber(options.hash)))
 	else
-		table.insert(args, "--data-urlencode")
-		table.insert(args, "videoID=" .. youtube_id)
+		table.insert(curl_args, "--data-urlencode")
+		table.insert(curl_args, "videoID="..youtube_id)
 	end
-	table.insert(args, url)
+	table.insert(curl_args, url)
 
+	mp.msg.debug(table.concat(curl_args,' '))
 	local sponsors = mp.command_native{
 		name = "subprocess",
 		capture_stdout = true,
 		playback_only = false,
-		args = args
+		args = curl_args
 	}
+
 	if sponsors.stdout then
 		local json = utils.parse_json(sponsors.stdout)
 		if type(json) == "table" then
-			if options.hash == "true" then
-				for _, i in pairs(json) do
-					if i.videoID == youtube_id then
-						ranges = i.segments
+			if tonumber(options.hash)>0 then
+				ranges = nil
+				for _, video in pairs(json) do
+					if video.videoID == youtube_id then
+						ranges = video.segments
 						break
 					end
 				end
@@ -99,31 +127,20 @@ function file_loaded()
 			end
 
 			if ranges then
-				ON = true
-				mp.add_key_binding("b","sponsorblock",toggle)
+				options.enabled = true
+				-- mp.add_key_binding(options.toggle_key,"sponsorblock",toggle)
 				mp.observe_property("time-pos", "native", skip_ads)
 			end
+		else
+			-- mp.msg.error('json not table')
 		end
 	end
 end
 
-function end_file()
-	if not ON then return end
+local function end_file()
+	if not options.enabled then return end
 	mp.unobserve_property(skip_ads)
 	ranges = nil
-	ON = false
-end
-
-function toggle()
-	if ON then
-		mp.unobserve_property(skip_ads)
-		mp.osd_message("[sponsorblock] off")
-		ON = false
-	else
-		mp.observe_property("time-pos", "native", skip_ads)
-		mp.osd_message("[sponsorblock] on")
-		ON = true
-	end
 end
 
 mp.register_event("file-loaded", file_loaded)
