@@ -40,14 +40,14 @@ local function handle(_,pl)
 
 			if i<pos then pl[i]='#'..pl[i] end
 		end
-		if newlines > 0 then mp.msg.warn(newlines..' newlines in filenames!') end
+		if newlines > 0 then mp.msg.warn(newlines,' newlines in filenames!') end
 	end
 	pl[#pl]=pl[#pl] and pl[#pl]:gsub('%s*$',(' '):rep(#pl))
 	fp:seek('set',0)
 	fp:write(table.concat(pl,'\n'),'\n');
 end
 local function endhandle()
-	mp.msg.info(lastpos, '?=', mp.get_property_native('playlist-count',0))
+	-- mp.msg.info(lastpos, '?=', mp.get_property_native('playlist-count',0))
 	if lastpos == -1 or lastpos == mp.get_property_native('playlist-count',0) then
 		mp.msg.info 'Cleaning playlist file!'
 		close()
@@ -72,7 +72,7 @@ mp.add_key_binding(':', 'firstqueue', function()
 		first_queue = dir..'/'..fp:read'l'
 		fp:close()
 	end
-	mp.msg.info('Playing from '..first_queue)
+	-- mp.msg.info('Playing from ',first_queue)
 	local fp = io.open(first_queue, 'r')
 	if not fp then mp.msg.error('no file pointer in firstqueue bind!') return end
 	local first = 0
@@ -90,6 +90,7 @@ mp.add_key_binding(':', 'firstqueue', function()
 		 or mp.commandv('loadfile', l:gsub([[\n]],'\n'), 'append-play')
 		 or mp.msg.error('could not load file "'..l..'"')
 	end
-	fp:close()
+	mp.commandv('show-text','q loaded')
+	close()
 	os.remove(first_queue)
 end)
