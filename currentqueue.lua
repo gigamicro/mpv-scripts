@@ -15,7 +15,7 @@ local function handle(_,pl)
 		lastlen=len
 	end
 	if not fp then
-		file = dir..'/q'..os.date('%Y-%m-%dT%H:%M:%S')..'.m3u'
+		file = dir..'/q'..os.date('%Y-%m-%dT%H:%M:%S')..('.%04d'):format(math.random(0,10^4))..'.m3u'
 		fp = io.open(file, 'w')
 		if not fp then
 			os.execute('mkdir "'..dir..'"')
