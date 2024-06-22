@@ -66,6 +66,7 @@ mp.register_event('shutdown', endhandle)
 mp.add_key_binding(':', 'firstqueue', function()
 	if not endhandle() then close() end
 	mp.commandv'stop'
+	mp.commandv('playlist-clear')
 	local first_queue
 	do
 		local fp = io.popen('ls -A "'..dir..'"')
@@ -78,8 +79,8 @@ mp.add_key_binding(':', 'firstqueue', function()
 	if not fp then mp.msg.error('no file pointer in firstqueue bind!') return end
 	local first = 0
 	for l in fp:lines() do
-		local comment = 0
-		l,comment=l:gsub('^#','')
+		local comment
+		l,comment=l:gsub(' *$',''):gsub('^#','')
 		if first then
 			first=first+1
 			if comment==0 then
