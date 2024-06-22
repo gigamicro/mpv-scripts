@@ -8,7 +8,7 @@ local function handle(vname,v)
 	-- 40= ########################################-------------------------------------------------------------------------------------
 	local format = 'ba*[filesize_approx<='..(filesize*portion)..']+bv*[filesize_approx<='..(filesize*(1-portion))..']/b[filesize_approx<='..filesize..']'
 	format=format:gsub('%[[a-z_]+[<=>?]+0]','')
-	if get('ytdl-format',format)~=format then mp.msg.info('format=',format) end
+	if get('ytdl-format',format)~=format then mp.msg.debug('format=',format) end
 	mp.set_property_native('ytdl-format',format)
 end
 mp.observe_property('cache-speed', 'native',handle)

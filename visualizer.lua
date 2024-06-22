@@ -226,8 +226,8 @@ local function hook()
     mp.msg.trace('Passed checks')
 
     local first_run = not lavfi_lastset
-    mp.msg.debug('firstrun:',first_run)
     if first_run then
+        mp.msg.debug 'first run'
         if mp.get_property('vid')=='no' then
             opts.name='ao'
             cycle(last_cycleby)
