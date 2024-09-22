@@ -5,6 +5,9 @@ local function paste(mode)
 		playback_only = false,
 		args = {'xclip', '-sel','c', '-o'}
 	}.stdout..'\n'
+	if mode:match'^insert%-next' and mp.get_property_native('playlist-pos',-1) ~=-1 then
+		clip=clip:reverse():gsub('\n[^\n]*',string.reverse) -- tac
+	end
 	for f in clip:gmatch('([^\n]*/[^\n]+)\n') do
 		mp.commandv('loadfile', f, mode)
 	end
