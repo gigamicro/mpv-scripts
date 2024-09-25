@@ -113,7 +113,7 @@ local function get_visualizer(name)
                 "bar_g"..   "=2:" ..
                 "sono_g"..  "=4:" ..
                 "bar_v"..   "=sono_v*9/17:" ..
-                "sono_v"..  "=17*0.95*(f*6e-3)/sqrt(1+f*f*36e-6):" ..
+                "sono_v"..  "=17*0.95*(f*6e-3)/sqrt(1+f*f*36e-6):" .. -- ≈ 16.15*(1-exp(-f*6e-3))
                 "axisfile".."="..mp.find_config_file("scripts").."/personal/axis.png:" ..
                 "font"..    "='Nimbus Mono L,Courier New,mono|bold':" ..
                 "fontcolor='st(0, (midi(f)-53.5)/12); st(1, 0.5 - 0.5*cos(PI*ld(0))); r(1-ld(1)) + b(ld(1))':" ..
@@ -214,7 +214,7 @@ local function hook()
         end
     end end
     if not aid then
-        local function observ()
+        local function observ()--_,aid)
             mp.msg.debug 'observ'
             mp.unobserve_property(observ)
             hook()

@@ -99,22 +99,24 @@ mp.add_key_binding(':', 'firstqueue', function()
 				playlistpos=0
 			end
 		end
-		if l~='' and (playlistpath=='' or playlistpath==l) then
-			local _ = mp.commandv('loadfile', l, 'append-play')
+		if l~='' and (isplaylist or playlistpath=='') then
+			local status = mp.commandv('loadfile', l, 'append-play')
 			 or mp.commandv('loadfile', l:gsub([[\n]],'\n'), 'append-play')
-			 or mp.msg.error('could not load file "'..l..'"')
+			if not status then
+				mp.msg.error('could not load file "'..l..'"')
+				readingq=nil
+			end
 		end
 		if first then
 			if past==0 then
-				first=false
 				mp.set_property_native('playlist-pos', mp.get_property_native('playlist-count', 1)-1)
+				first=false
 				if playlistpath=='' then
 					playlistpos=nil
 					playlistpospath=nil
 				else
 					playlistpospath=l
 				end
-				-- mp.msg.info(playlistpos,playlistpospath)
 			else
 				playlistpos=playlistpos and playlistpos+1
 			end
@@ -133,6 +135,7 @@ mp.register_event('end-file',function(ev)
 	if mp.get_property_native('playlist-count', 0) <= playlistposabs then return end
 	playlistpos=nil
 	if mp.get_property_native('playlist/'..playlistposabs..'/filename') ~= playlistpospath then
+		mp.commandv('show-text','q filename mismatch')
 		mp.msg.info('filename for id',
 			playlistposabs,',',
 			mp.get_property_native('playlist/'..playlistposabs..'/filename'),

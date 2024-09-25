@@ -1,4 +1,5 @@
 local function handle(vname,v)
+	-- !! interrupt if not remote
 	local function get(prop, def)
 		if prop==vname then return v or def end
 		return mp.get_property_native(prop,def)
