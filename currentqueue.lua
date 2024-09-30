@@ -1,4 +1,5 @@
 local dir = (os.getenv('APPDATA') or os.getenv('HOME')..'/.config')..'/mpv/q'
+math.randomseed(os.time())
 local file, fp, lastpos, lastlen
 local function close()
 	if not fp then return end
@@ -15,7 +16,6 @@ local function handle(_,pl)
 		lastlen=len
 	end
 	if not fp then
-		math.randomseed(os.time())
 		file = dir..'/q'..os.date('%Y-%m-%dT%H:%M:%S')..('.%04d'):format(math.random(0,10^4))..'.m3u'
 		fp = io.open(file, 'w')
 		if not fp then
