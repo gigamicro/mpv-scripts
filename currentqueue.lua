@@ -86,10 +86,8 @@ mp.add_key_binding(':', 'firstqueue', function()
 		readingq = dir..'/'..fp:read'l'
 		fp:close()
 	end
-	local fp = io.open(readingq, 'r')
-	if not fp then mp.msg.error('no file pointer in firstqueue bind!') return end
 	local first, playlistpath = true, ''
-	for l in fp:lines() do
+	for l in io.lines(readingq) do mp.msg.info('line is "',l,'"')
 		local past,isplaylist
 		l,past=l:gsub(' *$',''):gsub('^#','')
 		l,isplaylist=l:gsub('^#','')
@@ -99,7 +97,7 @@ mp.add_key_binding(':', 'firstqueue', function()
 				playlistpos=0
 			end
 		end
-		if l~='' and (isplaylist or playlistpath=='') then
+		if l~='' and (isplaylist>0 or playlistpath=='') then
 			local status = mp.commandv('loadfile', l, 'append-play')
 			 or mp.commandv('loadfile', l:gsub([[\n]],'\n'), 'append-play')
 			if not status then
