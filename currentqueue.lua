@@ -11,6 +11,7 @@ end
 local function handle(_,pl)
 	local len = mp.get_property_native('playlist-count',0)
 	if (lastlen or 0) > len+2 then
+		mp.msg.info 'Playlist truncated?'
 		close()
 	else
 		lastlen=len
@@ -23,37 +24,37 @@ local function handle(_,pl)
 			fp = io.open(file, 'w')
 		end
 	end
-	do -- remove extra data, new line handling, comment played, 
-		local newlines = 0
-		local nonlocal = false
-		local lastplaylist = nil
-		local pos = mp.get_property_native('playlist-pos-1',1)
-		for i,v in ipairs(pl) do
-			if nonlocal then -- do nothing
-			elseif not (v.filename:match('^/') or v.filename:match('^file:///')) then
-				nonlocal = true -- there's been a remote file
-			elseif i>100 then -- there's more than a hundred local files in a row at the start
-				-- close()
-				os.remove(file)
-				return
-			end
 
-			local playlist = v['playlist-path']
-			local plprefix = ''
-			if playlist ~= lastplaylist then
-				plprefix = '##'..(playlist or '')..'\n'
-				lastplaylist = playlist
-			end
-
-			local nl = 0
-			pl[i], nl = v.filename:gsub('\n',[[\n]])
-			newlines = newlines + nl
-
-			if i<pos then pl[i]='#'..pl[i] end
-			pl[i] = plprefix..pl[i]
+	local newlines = 0
+	local nonlocal = false
+	local lastplaylist = nil
+	local pos = mp.get_property_native('playlist-pos-1',1)
+	for i,v in ipairs(pl) do
+		if nonlocal then -- do nothing
+		elseif not (v.filename:match('^/') or v.filename:match('^file:///')) then
+			nonlocal = true -- there's been a remote file
+		elseif i>100 then -- there's more than a hundred local files in a row at the start
+			-- close()
+			os.remove(file)
+			return
 		end
-		if newlines > 0 then mp.msg.warn(newlines,' newlines in filenames!') end
+
+		local playlist = v['playlist-path']
+		local plprefix = ''
+		if playlist ~= lastplaylist then
+			plprefix = '##'..(playlist or '')..'\n'
+			lastplaylist = playlist
+		end
+
+		local nl = 0
+		pl[i], nl = v.filename:gsub('\n',[[\n]])
+		newlines = newlines + nl
+
+		if i<pos then pl[i]='#'..pl[i] end
+		pl[i] = plprefix..pl[i]
 	end
+	if newlines > 0 then mp.msg.warn(newlines,' newlines in filenames!') end
+
 	pl[#pl]=pl[#pl] and pl[#pl]:gsub('%s*$',(' '):rep(#pl))
 	fp:seek('set',0)
 	fp:write(table.concat(pl,'\n'),'\n');
@@ -74,11 +75,14 @@ mp.observe_property("playlist-pos-1", "native", function(_,pos)
 end)
 mp.register_event('shutdown', endhandle)
 
-local playlistpos, playlistpospath = nil, nil
+local playlistpos, playlistpospath = nil
 mp.add_key_binding(':', 'firstqueue', function()
 	if not endhandle() then close() end -- close, delete if normally would be deleted
 	mp.commandv'stop'
 	mp.commandv'playlist-clear'
+	playlistpos, playlistpospath = nil
+	mp.set_property_native('shuffle', false)
+	-- has reset, now read
 	local readingq
 	do -- get first queue
 		local fp = io.popen('ls -A "'..dir..'"')
@@ -86,8 +90,9 @@ mp.add_key_binding(':', 'firstqueue', function()
 		readingq = dir..'/'..fp:read'l'
 		fp:close()
 	end
-	local first, playlistpath = true, ''
-	for l in io.lines(readingq) do mp.msg.info('line is "',l,'"')
+	local playlistpath = ''
+	local first = true
+	for l in io.lines(readingq) do
 		local past,isplaylist
 		l,past=l:gsub(' *$',''):gsub('^#','')
 		l,isplaylist=l:gsub('^#','')
@@ -122,33 +127,36 @@ mp.add_key_binding(':', 'firstqueue', function()
 	end
 	mp.commandv('show-text','q loaded')
 	close()
-	os.remove(readingq) -- XXX no conditions
+	if not first  then os.remove(readingq)  end-- XXX no conditions
 end)
 
-mp.register_event('end-file',function(ev)
+mp.register_event('end-file',function(ev) -- if there is a playlistpos, we want to move there after reading a playlist
 	if not playlistpos then return end
-	if ev.reason~='redirect' then playlistpos=nil return end
+	if ev.reason=='eof' then playlistpos=nil end
+	if ev.reason~='redirect' then return end
 	if ev.playlist_insert_num_entries < playlistpos then return end
-	local playlistposabs=playlistpos+ev.playlist_entry_id-2
-	if mp.get_property_native('playlist-count', 0) <= playlistposabs then return end
+	local curpos = mp.get_property_native('playlist-pos', -1)
+	local newpos=playlistpos-1+curpos
+	if mp.get_property_native('playlist-count', 0) <= newpos then return end
 	playlistpos=nil
-	if mp.get_property_native('playlist/'..playlistposabs..'/filename') ~= playlistpospath then
+	if mp.get_property_native('playlist/'..newpos..'/filename') ~= playlistpospath then
 		mp.commandv('show-text','q filename mismatch')
-		mp.msg.info('filename for id',
-			playlistposabs,',',
-			mp.get_property_native('playlist/'..playlistposabs..'/filename'),
+		mp.msg.info('filename for index',
+			newpos,',',
+			mp.get_property_native('playlist/'..newpos..'/filename'),
 			'doesn\'t match expected',
 			playlistpospath)
-		playlistposabs = nil
-		for i, v in ipairs{},(mp.get_property_native('playlist',{})), ev.playlist_insert_id-1 do
+		newpos = nil
+		local playlist = mp.get_property_native('playlist',{})
+		for i, v in ipairs(playlist), playlist, curpos do
 			if v.filename == playlistpospath then
-				playlistposabs = i-1
+				newpos = i-1
 				break
 			end
 		end
-		if not playlistposabs then return end
-		mp.msg.info('found it at index',playlistposabs)
+		if not newpos then return end
+		mp.msg.info('found it at index',newpos)
 	end
-	mp.set_property_native('playlist-pos', playlistposabs)
+	mp.set_property_native('playlist-pos', newpos)
 	playlistpospath=nil
 end)
