@@ -1,0 +1,1 @@
+.metadata-osd/scripts/metadata_osd.lua
