@@ -1,0 +1,9 @@
+[submodule "videoclip"]
+	path = videoclip
+	url = git@github.com:Ajatt-Tools/videoclip.git
+[submodule ".dynamic-crop"]
+	path = .dynamic-crop
+	url = git@github.com:Ashyni/mpv-scripts.git
+[submodule ".metadata-osd"]
+	path = .metadata-osd
+	url = git@github.com:vc-01/metadata-osd.git
