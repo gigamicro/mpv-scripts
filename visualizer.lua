@@ -10,7 +10,7 @@ local opts = {
     height= 1080,
     ratio = 1,--16/6, -- 16/[4..12]
 }
-local cycle_key = "v"
+local cycle_key = "v" -- "script-binding visualizer/cycle+"
 local image_location = mp.find_config_file("scripts").."/.visualizer"
 -- /default settings
 
@@ -32,10 +32,13 @@ local namelist = {
     "showwaves",
     -- "showwaves-dots",
     -- "showwaves-mid",
-    "showwaves-high",
+    -- "showwaves-high",
     -- "showwaves-low",
-    -- "showspectrum",
     -- "showcqt-bar",
+    -- "showcwt",
+    -- "showspectrum-phase",
+    -- "showspectrum-legend",
+    -- "showspectrum",
     -- 'invalid :)'
 }
 local namelist_r = {}
@@ -55,9 +58,10 @@ end
 
 --add initialized name to list, replacing base if variant
 if opts.name:find'-' then
-    local basename = opts.name:gsub('-.+$','')
+    local basename = opts.name:match'^[^-]+'
     namelist[namelist_r[basename]]=opts.name -- add new val
     namelist_r[opts.name]=namelist_r[basename] -- add new pointer
+    -- namelist_r[basename]=nil
 else
     local name = opts.name
     if not namelist_r[name] then
@@ -79,13 +83,13 @@ local function get_visualizer(name)
     end
     w, h = w or h*opts.ratio, h or w/opts.ratio
 
-    local fps = opts.fps
-    if not fps or not w or not h then
+    local fps = mp.get_property_native('display-fps', opts.fps or 0) * mp.get_property_native('speed',1)
+    if fps==0 or not w or not h then
         mp.msg.error("invalid quality")
         return
     end
 
-    if false then
+    if false then --noop
     elseif name == 'ao' then
         return "[aid"..aid.."] asetpts=PTS [ao]"
 
@@ -110,16 +114,39 @@ local function get_visualizer(name)
                 "fps"..     "="..fps..":" ..
                 "size"..    "="..(math.floor(w/2)*2).."x"..(math.floor(h/2)*2)..":" ..
                 "count"..   "="..math.ceil(h /12 /fps)..":" .. -- 1/rate downward, min 1
-                "csp"..     "=bt709:" ..
                 "bar_g"..   "=2:" ..
                 "sono_g"..  "=4:" ..
                 "bar_v"..   "=sono_v*9/17:" ..
-                "sono_v"..  "=17*0.95*(f*6e-3)/sqrt(1+f*f*36e-6):" .. -- ≈ 16.15*(1-exp(-f*6e-3))
-                "axisfile".."="..image_location.."/axis.png:" ..
-                "font"..    "='Nimbus Mono L,Courier New,mono|bold':" ..
-                "fontcolor='st(0, (midi(f)-53.5)/12); st(1, 0.5 - 0.5*cos(PI*ld(0))); r(1-ld(1)) + b(ld(1))':" ..
+                "sono_v"..  "=17*0.95*(f*6e-3)/sqrt(1+f*f*36e-6):"..-- ≈16.15*(1-exp(-f*6e-3))
+                -- "axisfile".."="..image_location.."/axis.png:" ..
+                "font"..    "=mono|bold:" ..
+                "fontcolor='r(.533)+g(1)+b(if(between(mod(midi(f)+.5,48),12,24), 1, .6))':"..--C4
                 "tc"..      "=0.33:" ..
                 "attack"..  "=0.033 [vo]"
+
+    elseif name == "showcqt-bar" then
+        local axis_h = math.ceil(w * 12 / 1920) * 4
+
+        return get_visualizer("showcqt")
+            :gsub('size=[^:]+','size='..w.."x"..(h + axis_h)/(2))
+            :gsub("/axis.png:","/axis48.png:")
+            :gsub(' *%[vo]',":axis_h="..axis_h..":sono_h=0, "..
+                "split [v0], crop=h="..(h - axis_h)/(2)..":y=0, vflip, [v0] vstack [vo]")
+
+
+    elseif name == "showcwt" then
+        return "[aid"..aid.."] asplit [ao], " ..
+            "showcwt=" ..
+                "rate="..fps..":" ..
+                "size="..w.."x"..h..":" ..
+                "direction=du:" ..
+                "mode=stereo:"..
+                "bar=0.25:"..
+                -- "bar="..(1/h)..":"..
+                "pps="..math.ceil(h /12)..":" ..
+                "deviation=10:"..
+                "logb=0.001:"..
+                "scale=log [vo]"
 
 
     elseif name == "avectorscope" then
@@ -153,20 +180,24 @@ local function get_visualizer(name)
 
 
     elseif name == "showspectrum" then
-        return "[aid"..aid.."] asplit [ao]," ..
-            "showspectrum".." =" ..
-                "size"..    " ="..w.."x"..h..":" ..
-                "win_func".." = blackman [vo]"
+        return "[aid"..aid.."] asplit [ao], " ..
+            "showspectrum=" ..
+                "size".."="..w.."x"..h..":" ..
+                "fscale".."=log:"..
+                "slide=lreplace:"..
+                "orientation=horizontal:"..
+                "rotation=-0.25:"..
+                "saturation=0.5:"..
+                "scale=5thrt:"..
+                -- "=:"..
+                "win_func=blackman [vo]"
 
+    elseif name == "showspectrum-phase" then
+        return get_visualizer("showspectrum"):gsub('fscale=log','data=phase')
 
-    elseif name == "showcqt-bar" then
-        local axis_h = math.ceil(w * 12 / 1920) * 4
-
-        return get_visualizer("showcqt")
-            :gsub('size=[^:]+','size='..w.."x"..(h + axis_h)/(2))
-            :gsub("/axis.png:","/axis48.png:")
-            :gsub(' *%[vo%]',":axis_h="..axis_h..":sono_h=0, "..
-                "split [v0], crop=h="..(h - axis_h)/(2)..":y=0, vflip, [v0] vstack [vo]")
+    elseif name == "showspectrum-legend" then
+        local w,h = w-282-16, h-128
+        return get_visualizer("showspectrum"):gsub('size=[0-9]+x[0-9]+:','size='..w..'x'..h..':legend=enabled:')
 
 
     elseif name == "showwaves" then
@@ -179,7 +210,7 @@ local function get_visualizer(name)
             "format"..      "=rgb0 [vo]"
 
     elseif name == "showwaves-dots" then
-        return get_visualizer("showwaves"):gsub('=p2p','=point')
+        return get_visualizer("showwaves"):gsub('mode=p2p','mode=point')
 
     elseif name == "showwaves-mid" then
         return get_visualizer("showwaves"):gsub('asplit %[ao],','asplit [ao],'
@@ -242,13 +273,13 @@ local function hook()
     end
 
     local lavfi = get_visualizer(opts.name) or ''
-    if lavfi ~= lavfi_lastset then
+    if lavfi ~= lavfi_current then
         mp.msg.debug('lavfi before:',lavfi_current or '<none>')
         mp.set_property("lavfi-complex", lavfi)
         lavfi_lastset = lavfi
         mp.msg.debug('lavfi after:', lavfi)
     else
-        mp.msg.trace('Not setting lavfi-complex; lavfi==lavfi_lastset')
+        mp.msg.trace('Not setting lavfi-complex; lavfi==lavfi_current')
     end
 
     if first_run then
