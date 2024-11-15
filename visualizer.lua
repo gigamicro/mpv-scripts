@@ -2,13 +2,13 @@
 -- original source: https://github.com/mfcc64/mpv-scripts
 
 -- default settings
+-- '_' + setting is override
 local opts = {
-    --mode = 'force',
     name = 'av',
-    fps = 48,
-    -- width = 1920,
-    height= 1080,
-    ratio = 1,--16/6, -- 16/[4..12]
+    fps = 48, _fps = nil,
+    -- width = 960, _width =nil,
+    height= 540, _height=nil,
+    ratio = 16/9, _ratio=nil,
 }
 local cycle_key = "v" -- "script-binding visualizer/cycle+"
 local image_location = mp.find_config_file("scripts").."/.visualizer"
@@ -76,14 +76,30 @@ local function get_visualizer(name)
     -- https://ffmpeg.org/ffmpeg-filters.html
 
     local osd_dims = mp.get_property_native('osd-dimensions')
-    local w, h =  osd_dims.w~=0 and osd_dims.w or opts.width,  osd_dims.h~=0 and osd_dims.h or opts.height
+    local w, h = opts._width or osd_dims.w~=0 and osd_dims.w or opts.width,  opts._height or osd_dims.h~=0 and osd_dims.h or opts.height
     if not w and not h then
         mp.msg.error("invalid size")
         return
     end
     w, h = w or h*opts.ratio, h or w/opts.ratio
+    if opts._ratio and w/h~=opts._ratio then -- make it approx match
+        local r = opts._ratio
+        local a, b, c = {w=w,h=w/r}, {w=h*r,h=h}, {w=w,h=h}
+        a.a=a.w*a.h
+        b.a=b.w*b.h
+        c.a=c.w*c.h
+        a.d=math.abs(a.a-c.a)
+        b.d=math.abs(b.a-c.a)
+        if a.d<b.d then
+            w,h=a.w,a.h
+        elseif b.d<a.d then
+            w,h=b.w,b.h
+        else
+            w,h=math.floor((a.w+b.w)/2),math.floor((a.h+b.h)/2)
+        end
+    end
 
-    local fps = mp.get_property_native('display-fps', opts.fps or 0) * mp.get_property_native('speed',1)
+    local fps = opts._fps or mp.get_property_native('display-fps', opts.fps or 0) * mp.get_property_native('speed',1)
     if fps==0 or not w or not h then
         mp.msg.error("invalid quality")
         return
