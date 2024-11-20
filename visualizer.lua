@@ -179,7 +179,6 @@ local function get_visualizer(name)
                 "rate"..    "="..fps..",  " ..
             "format"..      "= rgb0 [vo]"
 
-
     elseif name == "avectorscope-dots" then
         local px = math.min(w,h)
         return "[aid"..aid.."] asplit [ao]," ..
@@ -218,12 +217,12 @@ local function get_visualizer(name)
 
     elseif name == "showwaves" then
         return "[aid"..aid.."] asplit [ao]," ..
-            "showwaves"..   "=" ..
-                "size"..    "="..w.."x"..h..":" ..
-                "r"..       "=46:" .. -- ~1920px window, traveling left at half that per frame
-                "draw"..    "=full:" ..
-                "mode"..    "=p2p," ..
-            "format"..      "=rgb0 [vo]"
+            "showwaves".."=" ..
+                "size".. "="..w.."x"..h..":" ..
+                "r"..    "=46:" .. -- ~1920px window, traveling left at half that per frame
+                "draw".. "=full:" ..
+                "mode".. "=p2p," ..
+            "format"..   "=rgb0 [vo]"
 
     elseif name == "showwaves-dots" then
         return get_visualizer("showwaves"):gsub('mode=p2p','mode=point')
@@ -293,7 +292,7 @@ local function hook()
         mp.msg.debug('lavfi before:',lavfi_current or '<none>')
         mp.set_property("lavfi-complex", lavfi)
         lavfi_lastset = lavfi
-        mp.msg.debug('lavfi after:', lavfi)
+        mp.msg.info('lavfi after:', lavfi)
     else
         mp.msg.trace('Not setting lavfi-complex; lavfi==lavfi_current')
     end
