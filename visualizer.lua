@@ -11,7 +11,6 @@ local opts = {
     ratio = 16/9, _ratio=nil,
 }
 local cycle_key = "v" -- "script-binding visualizer/cycle+"
-local image_location = mp.find_config_file("scripts").."/.visualizer"
 -- /default settings
 
 local mp = mp
@@ -134,7 +133,6 @@ local function get_visualizer(name)
                 "sono_g"..  "=4:" ..
                 "bar_v"..   "=sono_v*9/17:" ..
                 "sono_v"..  "=17*0.95*(f*6e-3)/sqrt(1+f*f*36e-6):"..-- ≈16.15*(1-exp(-f*6e-3))
-                -- "axisfile".."="..image_location.."/axis.png:" ..
                 "font"..    "=mono|bold:" ..
                 "fontcolor='r(.533)+g(1)+b(if(between(mod(midi(f)+.5,48),12,24), 1, .6))':"..--C4
                 "tc"..      "=0.33:" ..
@@ -145,7 +143,6 @@ local function get_visualizer(name)
 
         return get_visualizer("showcqt")
             :gsub('size=[^:]+','size='..w.."x"..(h + axis_h)/(2))
-            :gsub("/axis.png:","/axis48.png:")
             :gsub(' *%[vo]',":axis_h="..axis_h..":sono_h=0, "..
                 "split [v0], crop=h="..(h - axis_h)/(2)..":y=0, vflip, [v0] vstack [vo]")
 
