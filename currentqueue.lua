@@ -1,3 +1,4 @@
+local mp= require'mp'
 local dir = (os.getenv('APPDATA') or os.getenv('HOME')..'/.config')..'/mpv/q'
 math.randomseed(os.time())
 local file, fp, lastpos, lastlen
@@ -44,9 +45,12 @@ local function handle(_,pl)
 		if playlist ~= lastplaylist then
 			plprefix = '##'..(playlist or '')..'\n'
 			lastplaylist = playlist
+			if playlist == '-' or (playlist or ''):find'^/dev/' then
+				plprefix = '##\n'
+			end
 		end
 
-		local nl = 0
+		local nl
 		pl[i], nl = v.filename:gsub('\n',[[\n]])
 		newlines = newlines + nl
 
@@ -80,15 +84,15 @@ mp.add_key_binding(':', 'firstqueue', function()
 	if not endhandle() then close() end -- close, delete if normally would be deleted
 	mp.commandv'stop'
 	mp.commandv'playlist-clear'
-	playlistpos, playlistpospath = nil
+	playlistpos, playlistpospath = nil, nil
 	mp.set_property_native('shuffle', false)
 	-- has reset, now read
 	local readingq
 	do -- get first queue
-		local fp = io.popen('ls -A "'..dir..'"')
-		if not fp:read(0) then mp.msg.error 'No queues'; return end
-		readingq = dir..'/'..fp:read'l'
-		fp:close()
+		local ls = io.popen('ls -A "'..dir..'"')
+		if not ls:read(0) then mp.msg.error 'No queues'; return end
+		readingq = dir..'/'..ls:read'l'
+		ls:close()
 	end
 	local playlistpath = ''
 	local first = true
