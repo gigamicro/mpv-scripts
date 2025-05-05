@@ -32,7 +32,7 @@ local function handle(_,pl)
 	local pos = mp.get_property_native('playlist-pos-1',1)
 	for i,v in ipairs(pl) do
 		if nonlocal then -- do nothing
-		elseif not (v.filename:match('^/') or v.filename:match('^file:///')) then
+		elseif not (v.filename:match('^.?/') or v.filename:match('^file:///')) then
 			nonlocal = true -- there's been a remote file
 		elseif i>100 then -- there's more than a hundred local files in a row at the start
 			-- close()
