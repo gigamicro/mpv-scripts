@@ -5,7 +5,7 @@
 -- '_' + setting is override
 local opts = {
     name = 'av',
-    fps = 48, _fps = nil,
+    fps = 48, -- _fps = 48,
     -- width = 960, _width =nil,
     height= 540, _height=nil,
     ratio = 16/9, _ratio=nil,
@@ -98,7 +98,7 @@ local function get_visualizer(name)
         end
     end
 
-    local fps = opts._fps or mp.get_property_native('display-fps', opts.fps or 0) * mp.get_property_native('speed',1)
+    local fps = opts._fps or math.min(mp.get_property_native('display-fps',math.huge), opts.fps) * mp.get_property_native('speed',1)
     if fps==0 or not w or not h then
         mp.msg.error("invalid quality")
         return
