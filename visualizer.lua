@@ -70,6 +70,7 @@ else
 end
 
 local aid,vid
+local aon,von
 
 local function get_visualizer(name)
     -- https://ffmpeg.org/ffmpeg-filters.html
@@ -81,7 +82,7 @@ local function get_visualizer(name)
         return
     end
     w, h = w or h*opts.ratio, h or w/opts.ratio
-    if opts._ratio and w/h~=opts._ratio then -- make it approx match
+    if opts._ratio and w/h~=opts._ratio then -- todo? make it approx match
         local r = opts._ratio
         local a, b, c = {w=w,h=w/r}, {w=h*r,h=h}, {w=w,h=h}
         a.a=a.w*a.h
@@ -106,18 +107,28 @@ local function get_visualizer(name)
 
     if false then --noop
     elseif name == 'ao' then
-        return "[aid"..aid.."] asetpts=PTS [ao]"
+        mp.set_property("lavfi-complex", "")
+        mp.set_property("aid", 0)
+        mp.set_property("aid", aid)
+        mp.set_property("vid", "no")
+        return ""
 
 
     elseif name == "av" then
-        for _, track in ipairs(mp.get_property_native("track-list")) do
+        for _, track in ipairs(vid and {} or mp.get_property_native("track-list")) do
             if vid then break end
             if track.type == "video" then
                 vid = track.id
             end
+            if vid then break end
         end
         if vid then
-            return "[aid"..aid.."] asetpts=PTS [ao]; [vid"..vid.."] setpts=PTS [vo]"
+            mp.set_property("lavfi-complex", "")
+            mp.set_property("aid", 0)
+            mp.set_property("aid", aid)
+            mp.set_property("vid", 0)
+            mp.set_property("vid", vid)
+            return ""
         else
             return get_visualizer(cycle(last_cycleby))
         end
@@ -248,8 +259,9 @@ local function get_visualizer(name)
 end
 
 local lavfi_save, lavfi_lastset = {}, nil
-local function hook()
+local function hook(prop)
     mp.msg.debug('hook()')
+    if prop=='osd-dimensions' and lavfi_lastset=='' then return end
     aid=tonumber(mp.get_property('aid')) or aid
     if not aid then for _, track in ipairs(mp.get_property_native("track-list")) do
         if track.type == "audio" then
@@ -273,6 +285,7 @@ local function hook()
     if first_run then
         mp.msg.debug 'first run'
         if mp.get_property('vid')=='no' then
+            -- TODO this probably could have a better condition
             opts.name='ao'
             cycle(last_cycleby)
         end
